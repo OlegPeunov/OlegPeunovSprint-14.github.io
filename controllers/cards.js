@@ -34,10 +34,18 @@ module.exports.deleteCard = ((req, res) => {
     res.status(400).send({ message: 'Invalid id' });
     return;
   }
-  Cards.findByIdAndRemove(cardId)
+  Cards.findById(cardId)
     .orFail(new Error('notValidId'))
-    .then((cards) => {
-      res.json({ data: cards });
+    .then((card) => {
+      // eslint-disable-next-line no-underscore-dangle
+      if (card.owner == req.user._id) {
+        Cards.findByIdAndRemove(cardId)
+          .then((cards) => {
+            res.json({ data: cards });
+          });
+      } else {
+        res.status(418).send({ message: 'Вы не можете удалять чужие карточки' });
+      }
     })
     .catch((err) => {
       if (err.message === 'notValidId') {
