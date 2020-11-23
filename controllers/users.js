@@ -4,16 +4,31 @@ const mongoose = require('mongoose');
 const Users = require('../models/users');
 
 module.exports.createUser = ('/', (req, res) => {
-  const { name, about, avatar, email, password } = req.body;
+  const {
+    name,
+    about,
+    avatar,
+    email,
+    password,
+  } = req.body;
   bcrypt.hash(password, 10)
-    .then(hash => Users.create({ name, about, avatar, email, password: hash })
+    .then((hash) => Users.create({
+      name,
+      about,
+      avatar,
+      email,
+      password: hash,
+    })
       .then((users) => {
         res.json({ data: users });
       })
       .catch((err) => {
-        // eslint-disable-next-line no-underscore-dangle
         if (err._message === 'user validation failed') {
           res.status(400).send({ message: 'Invalid User-data' });
+          return;
+        }
+        if (err.name === 'MongoError' && err.code === 11000) {
+          res.status(409).send({ message: 'Пользователь с таким email уже существует' });
           return;
         }
         res.status(500).send({ message: 'Internal server error' });
@@ -25,7 +40,6 @@ module.exports.login = (req, res) => {
   return Users.findUserByCredentials(email, password)
     .then((user) => {
       const token = jwt.sign(
-        // eslint-disable-next-line no-underscore-dangle
         { _id: user._id },
         'some-secret-key',
         { expiresIn: '7d' },
